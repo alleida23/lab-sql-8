@@ -12,6 +12,7 @@ JOIN address a ON s.address_id = a.address_id
 JOIN city c ON a.city_id = c.city_id
 JOIN country k ON c.country_id = k.country_id;
 
+
 -- 2. Write a query to display how much business, in dollars, each store brought in.
 
 SELECT s.store_id AS store, CONCAT('$', FORMAT(sum(p.amount),2)) AS amount 
@@ -43,10 +44,6 @@ ORDER BY times_rented DESC;
 
 -- 5. List the top five genres (category) in gross revenue in descending order.
 
-SELECT * FROM payment limit 2;
-SELECT * FROM film_category limit 2;
-select * FROM CATEGORY LIMIT 2;
-
 SELECT c.name AS cat_name, CONCAT('$', FORMAT(sum(p.amount),2)) AS gross_revenue
 FROM category c
 JOIN film_category f USING (category_id) 
@@ -57,13 +54,9 @@ GROUP BY cat_name
 ORDER BY gross_revenue desc
 LIMIT 5;
 
+
+
 -- 6. Is "Academy Dinosaur" available for rent from Store 1?
-
-SELECT * FROM film LIMIT 2; #film_id / title
-SELECT * FROM inventory LIMIT 2; #film_id
-SELECT * FROM rental LIMIT 2; #inventory_id
-SELECT * FROM store LIMIT 2; #store_id
-
 
 SELECT CASE
 	WHEN COUNT(*) > 0 THEN 'Available in Store 1' ELSE 'Not available in Store 1' 
@@ -87,20 +80,109 @@ WITH temp_table as(
     JOIN film_actor fa USING (actor_id)
     JOIN film f USING (film_id)
 	)
-SELECT *
+SELECT t1.title, t1.full_name, t2.full_name
 FROM temp_table t1
 JOIN temp_table t2
-ON (t1.title = t2.title) AND (t1.full_name<>t2.full_name)
+ON (t1.title = t2.title) AND (t1.full_name<>t2.full_name) #SELF JOIN
 ORDER BY full_name;
 
-#self join?
-
-#select *
-#from bank.account a1
-#join bank.account a2
-#on (a1.district_id = a2.district_id) AND (a1.account_id > a2.account_id);
 
 -- 8. Get all pairs of customers that have rented the same film more than 3 times.
 
+SELECT * FROM customer LIMIT 10; #customer_id, CONCAT(c.first_name," ",c.last_name) AS full_name
+SELECT * FROM rental LIMIT 10; #customer_id, rental_id, inventory_id
+SELECT * FROM payment LIMIT 10; # rental_id, payment_id
+select * from inventory limit 5; # film_id,inventory_id
+SELECT * FROM film limit 5; #film_id
+
+#not done
+SELECT customer_id
+FROM customer
+WHERE customer_id IN (
+	SELECT rental_id
+	FROM rental
+	WHERE inventory_id IN (
+		SELECT inventory_id
+		FROM inventory
+		WHERE film_id IN (
+			SELECT film_id
+			FROM FILM
+        )));
+
+
+
+
+
+
+
+SELECT r1.rental_id, r1.customer_id, r2.customer_id
+FROM rental r1
+JOIN rental r2
+ON (r1.rental_id <> r2.rental_id) AND (r1.customer_id<>r2.customer_id) #SELF JOIN
+ORDER BY r1.customer_id;
+
+
+
+
+
+
+
+
 
 -- 9. For each film, list actor that has acted in more films.
+-- PER CADA PEL$LÍCULA, L'ACTOR QUE MÉS N'HA INTERPRETAT
+#WITH actor_most as (
+
+SELECT * FROM actor limit 10; #actor_id
+SELECT * FROM film_actor LIMIT 10; #actor_id, film_id
+SELECT * FROM film LIMIT 10; #film_id
+
+#SELECT f.title, CONCAT(a.first_name," ",a.last_name) AS full_name;
+
+#actors and appearances. --> inner query
+SELECT actor_id
+FROM film_actor
+GROUP BY actor_id
+ORDER BY COUNT(film_id) desc; # list ordered of actors appearances
+#LIMIT 1;    # actor_id 107 --> most appearances
+
+select first_name, last_name from actor where actor_id = 107; #gina degeneres 1st
+select first_name, last_name from actor where actor_id = 102; # walter torn 2nd
+select first_name, last_name from actor where actor_id = 198; # mary keitel 3rd
+
+
+# ATTEMPT 1
+SELECT f.title, CONCAT(a.first_name, ' ', a.last_name) AS most_prolific_artist
+FROM film f
+JOIN film_actor fa USING (film_id)
+JOIN actor a USING (actor_id)
+WHERE a.actor_id IN (
+		SELECT actor_id
+		FROM film_actor
+		GROUP BY actor_id
+		ORDER BY COUNT(*) desc    #NOT WORKING AS EXPECTED
+        )
+ORDER BY f.title;                 # show ordered LIST of actors according to number of appearances (desc) for each film
+                                  # how to reduce to 1?
+
+
+#ATTEMPT 2
+SELECT f.title, CONCAT(a.first_name, ' ', a.last_name) AS most_prolific_artist_in_the_movie
+FROM film f
+JOIN film_actor fa USING (film_id)
+JOIN actor a USING (actor_id)
+WHERE a.actor_id = (
+		SELECT actor_id
+		FROM film_actor
+		GROUP BY actor_id
+		ORDER BY COUNT(*) desc    #NOT WORKING AS EXPECTED
+        LIMIT 1)
+ORDER BY f.title;                 # only shows films from GINA DEGENERES
+
+
+
+
+
+
+
+
